@@ -20,9 +20,9 @@
  * THE SOFTWARE.
  */
 
-#define	VRAM	0x8001000002000000;
+#define	VRAM	0x800100000a000000
 #define	SCR_WIDTH 80
-#define	SCR_HEIGHT 40
+#define	SCR_HEIGHT 60
 
 int cx = 0;
 int cy = 0;
@@ -30,12 +30,17 @@ char *vram = 0;
 
 void scroll(void)
 {
-	char *dst = (char *)VRAM
-	char *src = dst + SCR_WIDTH;
-	int i;
+	int i, j;
 
-	for (i = 0; i < SCR_WIDTH * (SCR_HEIGHT - 1); i++)
-		*dst++ = *src++;
+	for (i = 0; i < SCR_HEIGHT - 1; i++) {
+		char *dst, *src;
+
+		dst = (char *)VRAM + (i << 7);
+		src = dst + (1 << 7);
+
+		for (j = 0; j < SCR_WIDTH; j++)
+			*dst++ = *src++;
+	}
 }
 
 void putc(char c)
@@ -47,10 +52,10 @@ void putc(char c)
 			cx = 0;
 			if (cy == SCR_HEIGHT - 1) {
 				scroll();
-				vram -= SCR_WIDTH;
 			} else {
 				cy++;
 			}
+			vram = (char *)VRAM + (cy << 7);
 		}
 		break;
 	case '\r':
@@ -62,7 +67,8 @@ void putc(char c)
 			scroll();
 		} else {
 			cy++;
-			vram += SCR_WIDTH;
+			// vram += SCR_WIDTH;
+			vram += (1 << 7);
 		}
 		break;
 	case '\b':
@@ -87,11 +93,24 @@ void puts(char *s)
 
 int main(void)
 {
+	extern void ps2_init(void);
+
 	cx = 0;
 	cy = 0;
 	vram = (char *)VRAM;
 
 	puts("MMIX BIOS for DE0, Version 0.0\n");
+
+	ps2_init();
+
+	for (;;) {
+		int ch;
+
+		ch = getch();
+		if (ch == '\n')
+			putc('\r');
+		putc(ch);
+	}
 
 	return 0;
 }

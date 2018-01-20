@@ -4,14 +4,14 @@ bios.img: bios
 		bios bios.img
 	mmix-objdump -d bios > bios.dis
 
-bios: start.o bios.o
-	mmix-ld -o bios start.o bios.o -T bios.lds -e __start
+bios: start.o bios.o ps2.o
+	mmix-ld -o bios $^ -T bios.lds -e __start
 
 start.o: start.S
 	mmix-gcc -c start.S
 
-bios.o: bios.c
-	mmix-gcc -fno-builtin -mno-base-addresses -c bios.c
+%.o: %.c
+	mmix-gcc -fno-builtin -mno-base-addresses -c $<
 
 clean:
 	-rm -f *.o 
