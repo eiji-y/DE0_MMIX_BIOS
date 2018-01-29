@@ -4,7 +4,7 @@ bios.img: bios
 		bios bios.img
 	mmix-objdump -d bios > bios.dis
 
-bios: start.o bios.o ps2.o
+bios: start.o bios.o ps2.o boot.o
 	mmix-ld -o bios $^ -T bios.lds -e __start
 
 start.o: start.S

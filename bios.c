@@ -31,9 +31,9 @@ char *vram = 0;
 void scroll(void)
 {
 	int i, j;
+	char *dst, *src;
 
 	for (i = 0; i < SCR_HEIGHT - 1; i++) {
-		char *dst, *src;
 
 		dst = (char *)VRAM + (i << 7);
 		src = dst + (1 << 7);
@@ -41,6 +41,10 @@ void scroll(void)
 		for (j = 0; j < SCR_WIDTH; j++)
 			*dst++ = *src++;
 	}
+
+	dst = (char *)VRAM + (i << 7);
+	for (j = 0; j < SCR_WIDTH; j++)
+		*dst++ = 0;
 }
 
 void putc(char c)
@@ -91,6 +95,186 @@ void puts(char *s)
 	}
 }
 
+int gets(char *buf, int size)
+{
+	int	i;
+
+	size--;		// for null terminator.
+	i = 0;
+	for (;;) {
+		int ch;
+
+		ch = getch(); 
+		switch (ch) {
+		default:
+			if (i < size) {
+				putc(ch);
+				buf[i++] = ch;
+			}
+			break;
+		case '\n':
+			putc('\r');
+			putc('\n');
+			buf[i] = 0;
+			return i;
+		case '\003':
+			puts("^C\n");
+			return -1;
+		case '\b':
+			putc('\b');
+			putc(' ');
+			putc('\b');
+			i--;
+			break;
+		}
+	}
+}
+
+///////////
+static void print_hex_one(unsigned char val)
+{
+
+	val &= 0xf;
+	if (val < 10)
+		putc('0' + val);
+	else
+		putc('a' + val - 10);
+}
+
+static void print_hex(unsigned long long val, int size)
+{
+	switch (size) {
+	case 8:
+		print_hex_one(val >> 60);
+		print_hex_one(val >> 56);
+		print_hex_one(val >> 52);
+		print_hex_one(val >> 48);
+		print_hex_one(val >> 44);
+		print_hex_one(val >> 40);
+		print_hex_one(val >> 36);
+		print_hex_one(val >> 32);
+	case 4:
+		print_hex_one(val >> 28);
+		print_hex_one(val >> 24);
+		print_hex_one(val >> 20);
+		print_hex_one(val >> 16);
+	case 2:
+		print_hex_one(val >> 12);
+		print_hex_one(val >> 8);
+	case 1:
+		print_hex_one(val >> 4);
+		print_hex_one(val >> 0);
+	}
+}
+
+void eval(char *s)
+{
+	char cmd;
+	char size;
+	long long addr;
+	long long val;
+
+	cmd = *s++;
+	switch (cmd) {
+	case 'r':
+	case 'w':
+		break;
+	case 'b':
+		boot();
+		puts("No SD Card.\n");
+		return;
+	default:
+		return;
+	}
+
+	size = *s++;
+	switch (size) {
+	case 'b':	// byte
+	case 'w':	// wyde
+	case 't':	// tetra
+	case 'o':	// octa
+		break;
+	default:
+		return;
+	}
+
+	while (*s == ' ')
+		s++;
+
+	addr = 0;
+	for (;;) {
+		char ch;
+
+		ch = *s++;
+		if (('0' <= ch) && (ch <= '9')) {
+			addr <<= 4;
+			addr += ch - '0';
+		} else if (('a' <= ch) && (ch <= 'f')) {
+			addr <<= 4;
+			addr += ch - 'a' + 10;
+		} else if (('A' <= ch) && (ch <= 'F')) {
+			addr <<= 4;
+			addr += ch - 'A' + 10;
+		} else {
+			break;
+		}
+	}
+
+	if (cmd == 'r') {
+		switch (size) {
+		case 'b':
+			print_hex(*(unsigned char *)addr, 1);
+			break;
+		case 'w':
+			print_hex(*(unsigned short *)addr, 2);
+			break;
+		case 't':
+			print_hex(*(unsigned int *)addr, 4);
+			break;
+		case 'o':
+			print_hex(*(unsigned long long *)addr, 8);
+			break;
+		}
+	} else if (cmd = 'w') {
+		while (*s == ' ')
+			s++;
+
+		val = 0;
+		for (;;) {
+			char ch;
+
+			ch = *s++;
+			if (('0' <= ch) && (ch <= '9')) {
+				val <<= 4;
+				val += ch - '0';
+			} else if (('a' <= ch) && (ch <= 'f')) {
+				val <<= 4;
+				val += ch - 'a' + 10;
+			} else if (('A' <= ch) && (ch <= 'F')) {
+				val <<= 4;
+				val += ch - 'A' + 10;
+			} else {
+				break;
+			}
+		}
+
+		switch (size) {
+		case 'b':
+			*(unsigned char *)addr = val;
+			break;
+		case 'w':
+			*(unsigned short *)addr = val;
+			break;
+		case 't':
+			*(unsigned int *)addr = val;
+			break;
+		case 'o':
+			*(unsigned long long *)addr = val;
+			break;
+		}
+	}
+}
+
 int main(void)
 {
 	extern void ps2_init(void);
@@ -103,13 +287,19 @@ int main(void)
 
 	ps2_init();
 
-	for (;;) {
-		int ch;
+	// try boot();
+	boot();
 
-		ch = getch();
-		if (ch == '\n')
-			putc('\r');
-		putc(ch);
+	for (;;) {
+		char buf[256];
+		int ret;
+
+		puts("> ");
+		ret = gets(buf, sizeof(buf));
+		if (ret) {
+			eval(buf);
+			puts("\n");
+		}
 	}
 
 	return 0;

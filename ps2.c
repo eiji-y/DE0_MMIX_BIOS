@@ -2,30 +2,6 @@
 #define	EIO		1
 #define	ETIMEDOUT	2
 
-extern void putc(char);
-
-static void print_hex_one(unsigned char val)
-{
-
-	val &= 0xf;
-	if (val < 10)
-		putc('0' + val);
-	else
-		putc('a' + val - 10);
-}
-
-static void print_hex(unsigned int val)
-{
-	print_hex_one(val >> 28);
-	print_hex_one(val >> 24);
-	print_hex_one(val >> 20);
-	print_hex_one(val >> 16);
-	print_hex_one(val >> 12);
-	print_hex_one(val >> 8);
-	print_hex_one(val >> 4);
-	print_hex_one(val >> 0);
-}
-
 /*
 "abcdefgh" 0x1C, 0x32, 0x21, 0x23, 0x24, 0x2B, 0x34, 0x33,
 "ijklmnop" 0x43, 0x3B, 0x42, 0x4B, 0x3A, 0x31, 0x44, 0x4D,
