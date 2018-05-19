@@ -21,6 +21,7 @@
  */
 
 #define	VRAM	0x800100000a000000
+#define	CONTROL	0x800100000a002000
 #define	SCR_WIDTH 80
 #define	SCR_HEIGHT 60
 
@@ -282,6 +283,10 @@ int main(void)
 	cx = 0;
 	cy = 0;
 	vram = (char *)VRAM;
+
+	// wait clear screen
+	while (*(unsigned int *)CONTROL & 0x00000100)
+		;
 
 	puts("MMIX BIOS for DE0, Version 0.0\n");
 

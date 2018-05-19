@@ -1,7 +1,7 @@
 # DE0_MMIX_BIOS
 BIOS for DE0 MMIX
 
-This version display banner message.
+Boot from SD-Card.
 
 Usage:
 * Write bios.img to FLASH using DE0_ControlPanel.exe.
